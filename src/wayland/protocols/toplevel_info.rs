@@ -373,7 +373,7 @@ fn send_toplevel_to_client<D, W: 'static>(
         || (handle_state.states.contains(&States::Activated) != window.is_activated())
         || (handle_state.states.contains(&States::Minimized) != window.is_minimized())
     {
-        tracing::debug!("states : Toplevel {:?} needs to change! from state {:?}",handle_state.title,
+        tracing::debug!("states : Toplevel {:?} {:?} needs to change! from state {:?}",handle_state.title, instance.id(),
         handle_state.states);
         let mut states = Vec::new();
         if window.is_maximized() {
@@ -407,7 +407,8 @@ fn send_toplevel_to_client<D, W: 'static>(
         changed = true;
     }
     else {
-        tracing::debug!("states : Toplevel {:?} unchanged from state {:?}",handle_state.title,
+        tracing::debug!("states : Toplevel {:?} {:?} unchanged from state {:?}",handle_state.title,
+        instance.id(),
         handle_state.states);
     }
 
