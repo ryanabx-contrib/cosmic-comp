@@ -373,8 +373,13 @@ fn send_toplevel_to_client<D, W: 'static>(
         || (handle_state.states.contains(&States::Activated) != window.is_activated())
         || (handle_state.states.contains(&States::Minimized) != window.is_minimized())
     {
-        tracing::debug!("states : Toplevel {:?} {:?} needs to change! from state {:?}",handle_state.title, instance.id(),
-        handle_state.states);
+        tracing::debug!(
+            "states : Toplevel {:?} instance: {:?} client: {:?} needs to change! from state {:?}",
+            handle_state.title,
+            instance.id(),
+            instance.client().map(|c| c.id()),
+            handle_state.states
+        );
         let mut states = Vec::new();
         if window.is_maximized() {
             states.push(States::Maximized);
@@ -405,11 +410,14 @@ fn send_toplevel_to_client<D, W: 'static>(
         };
         instance.state(states);
         changed = true;
-    }
-    else {
-        tracing::debug!("states : Toplevel {:?} {:?} unchanged from state {:?}",handle_state.title,
-        instance.id(),
-        handle_state.states);
+    } else {
+        tracing::debug!(
+            "states : Toplevel {:?} instance: {:?} client: {:?} unchanged from state {:?}",
+            handle_state.title,
+            instance.id(),
+            instance.client().map(|c| c.id()),
+            handle_state.states
+        );
     }
 
     if let Ok(client) = dh.get_client(instance.id()) {
