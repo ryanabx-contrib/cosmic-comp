@@ -341,9 +341,11 @@ fn send_toplevel_to_client<D, W: 'static>(
                     state.instances.push(toplevel_handle);
                     state.instances.last().unwrap()
                 } else {
+                    tracing::debug!("Early exiting state 1");
                     return;
                 }
             } else {
+                tracing::debug!("Early exiting state 2");
                 return;
             }
         }
@@ -371,6 +373,8 @@ fn send_toplevel_to_client<D, W: 'static>(
         || (handle_state.states.contains(&States::Activated) != window.is_activated())
         || (handle_state.states.contains(&States::Minimized) != window.is_minimized())
     {
+        tracing::debug!("states : Toplevel {:?} needs to change! from state {:?}",handle_state.title,
+        handle_state.states);
         let mut states = Vec::new();
         if window.is_maximized() {
             states.push(States::Maximized);
@@ -385,6 +389,11 @@ fn send_toplevel_to_client<D, W: 'static>(
             states.push(States::Minimized);
         }
         handle_state.states = states.clone();
+        tracing::debug!(
+            "states (2) : Sending handle state to client: {:?}, {:?}",
+            handle_state.title,
+            handle_state.states
+        );
 
         let states: Vec<u8> = {
             let ratio = std::mem::size_of::<States>() / std::mem::size_of::<u8>();
@@ -396,6 +405,10 @@ fn send_toplevel_to_client<D, W: 'static>(
         };
         instance.state(states);
         changed = true;
+    }
+    else {
+        tracing::debug!("states : Toplevel {:?} unchanged from state {:?}",handle_state.title,
+        handle_state.states);
     }
 
     if let Ok(client) = dh.get_client(instance.id()) {
