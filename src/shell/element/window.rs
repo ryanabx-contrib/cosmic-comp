@@ -516,10 +516,12 @@ impl SpaceElement for CosmicWindow {
             .0
             .with_program(|p| p.activated.load(Ordering::SeqCst) != activated)
         {
+            tracing::debug!("states : SpaceElement::set_activate 1");
             SpaceElement::set_activate(&self.0, activated);
             self.0.force_redraw();
             self.0.with_program(|p| {
                 p.activated.store(activated, Ordering::SeqCst);
+                tracing::debug!("states : SpaceElement::set_activate 2");
                 SpaceElement::set_activate(&p.window, activated);
             });
         }

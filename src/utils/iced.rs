@@ -360,7 +360,9 @@ impl<P: Program + Send + 'static + Clone> IcedElement<P> {
 impl<P: Program + Send + 'static> IcedElementInternal<P> {
     #[profiling::function]
     fn update(&mut self, mut force: bool) -> Vec<Action<<P as Program>::Message>> {
+        tracing::debug!("states : iced::update");
         while let Ok(message) = self.rx.try_recv() {
+            tracing::debug!("states : got message {:?}",message);
             self.state.queue_message(message);
             force = true;
         }
@@ -396,11 +398,16 @@ impl<P: Program + Send + 'static> IcedElementInternal<P> {
         actions
             .into_iter()
             .filter_map(|action| {
+                tracing::debug!("states : scheduling action {:?}",action);
                 if let Action::Future(future) = action {
+                    tracing::debug!("states : let action future");
+
                     let _ = self.scheduler.schedule(future);
                     None
                 } else {
+                    tracing::debug!("states : else");
                     Some(action)
+
                 }
             })
             .collect::<Vec<_>>()
@@ -644,7 +651,9 @@ impl<P: Program + Send + 'static> SpaceElement for IcedElement<P> {
     }
 
     fn set_activate(&self, activated: bool) {
+        tracing::debug!("states : start iced::set_activate");
         let mut internal = self.0.lock().unwrap();
+        tracing::debug!("states : got mutex!");
         internal.state.queue_event(Event::Window(
             Id::MAIN,
             if activated {
@@ -653,6 +662,7 @@ impl<P: Program + Send + 'static> SpaceElement for IcedElement<P> {
                 WindowEvent::Unfocused
             },
         ));
+        tracing::debug!("states : internal update with activated={:?}",activated);
         let _ = internal.update(true); // TODO
     }
 
