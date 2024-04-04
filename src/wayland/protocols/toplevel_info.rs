@@ -410,14 +410,6 @@ fn send_toplevel_to_client<D, W: 'static>(
         };
         instance.state(states);
         changed = true;
-    } else {
-        tracing::debug!(
-            "states : Toplevel {:?} instance: {:?} client: {:?} unchanged from state {:?}",
-            handle_state.title,
-            instance.id(),
-            instance.client().map(|c| c.id()),
-            handle_state.states
-        );
     }
 
     if let Ok(client) = dh.get_client(instance.id()) {

@@ -65,6 +65,7 @@ impl ToplevelManagementHandler for State {
                     idx as usize,
                     WorkspaceDelta::new_shortcut(),
                 ); // TODO: Move pointer?
+                tracing::debug!("states : Setting focus to window: {:?}", window.title());
                 mapped.focus_window(window);
                 Common::set_focus(self, Some(&mapped.clone().into()), &seat, None);
                 return;

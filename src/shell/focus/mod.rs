@@ -190,6 +190,17 @@ impl Shell {
                 raise_with_children(&mut set.sticky_layer, focused);
             }
             for window in set.sticky_layer.mapped() {
+                if !window.is_activated(false) && focused_windows.contains(&window) {
+                    tracing::debug!(
+                        "states : setting {:?} to activated",
+                        window.active_window().title()
+                    );
+                } else if window.is_activated(false) && !focused_windows.contains(&window) {
+                    tracing::debug!(
+                        "states : setting {:?} to deactivated",
+                        window.active_window().title()
+                    );
+                }
                 window.set_activated(focused_windows.contains(&window));
                 window.configure();
             }
@@ -199,6 +210,17 @@ impl Shell {
                 raise_with_children(&mut workspace.floating_layer, focused);
             }
             for window in workspace.mapped() {
+                if !window.is_activated(false) && focused_windows.contains(&window) {
+                    tracing::debug!(
+                        "states : setting {:?} to activated",
+                        window.active_window().title()
+                    );
+                } else if window.is_activated(false) && !focused_windows.contains(&window) {
+                    tracing::debug!(
+                        "states : setting {:?} to deactivated",
+                        window.active_window().title()
+                    );
+                }
                 window.set_activated(focused_windows.contains(&window));
                 window.configure();
             }
