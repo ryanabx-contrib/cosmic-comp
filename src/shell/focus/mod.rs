@@ -212,13 +212,13 @@ impl Shell {
             for window in workspace.mapped() {
                 if !window.is_activated(false) && focused_windows.contains(&window) {
                     tracing::debug!(
-                        "states : setting {:?} to activated",
-                        window.active_window().title()
+                        "states : setting {:?} to activated {:?} {:?}",
+                        window.active_window().title(), window.is_activated(true), window.is_activated(false)
                     );
                 } else if window.is_activated(false) && !focused_windows.contains(&window) {
                     tracing::debug!(
-                        "states : setting {:?} to deactivated",
-                        window.active_window().title()
+                        "states : setting {:?} to deactivated {:?} {:?}",
+                        window.active_window().title(), window.is_activated(true), window.is_activated(false)
                     );
                 }
                 window.set_activated(focused_windows.contains(&window));

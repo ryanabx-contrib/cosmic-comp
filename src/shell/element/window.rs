@@ -512,10 +512,15 @@ impl SpaceElement for CosmicWindow {
         self.focus_under(*point).is_some()
     }
     fn set_activate(&self, activated: bool) {
-        if self
-            .0
-            .with_program(|p| p.activated.load(Ordering::SeqCst) != activated)
-        {
+        if self.0.with_program(|p| {
+            // tracing::debug!(
+            //     "states : program {:?}, activated: {:?} title: {:?}",
+            //     p,
+            //     p.activated.load(Ordering::SeqCst),
+            //     p.last_title
+            // );
+            p.activated.load(Ordering::SeqCst) != activated
+        }) {
             tracing::debug!("states : SpaceElement::set_activate 1");
             SpaceElement::set_activate(&self.0, activated);
             self.0.force_redraw();
@@ -525,6 +530,9 @@ impl SpaceElement for CosmicWindow {
                 SpaceElement::set_activate(&p.window, activated);
             });
         }
+        //  else {
+        //     tracing::debug!("states : CosmicWindow::set_activate failed");
+        // }
     }
     #[profiling::function]
     fn output_enter(&self, output: &Output, overlap: Rectangle<i32, Logical>) {
