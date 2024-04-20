@@ -127,6 +127,7 @@ impl Animation {
         output_geometry: Rectangle<i32, Logical>,
         current_geometry: Rectangle<i32, Local>,
         tiled_state: Option<&TiledCorners>,
+        gaps: (i32, i32),
     ) -> Rectangle<i32, Local> {
         let (duration, target_rect) = match self {
             Animation::Minimize {
@@ -137,7 +138,7 @@ impl Animation {
             } => (MINIMIZE_ANIMATION_DURATION, target_geometry.clone()),
             Animation::Tiled { .. } => {
                 let target_geometry = if let Some(target_rect) =
-                    tiled_state.map(|state| state.relative_geometry(output_geometry))
+                    tiled_state.map(|state| state.relative_geometry(output_geometry, gaps))
                 {
                     target_rect
                 } else {
@@ -178,54 +179,80 @@ impl TiledCorners {
     pub fn relative_geometry(
         &self,
         output_geometry: Rectangle<i32, Logical>,
+        gaps: (i32, i32),
     ) -> Rectangle<i32, Local> {
+        let (_, inner) = gaps;
         let (loc, size) = match self {
             TiledCorners::Bottom => (
                 Point::from((
-                    output_geometry.loc.x,
-                    output_geometry.loc.y + (output_geometry.size.h / 2),
+                    output_geometry.loc.x + inner,
+                    output_geometry.loc.y + (output_geometry.size.h / 2) + inner / 2,
                 )),
-                Size::from((output_geometry.size.w, output_geometry.size.h / 2)),
+                Size::from((
+                    output_geometry.size.w - inner * 2,
+                    output_geometry.size.h / 2 - inner * 3 / 2,
+                )),
             ),
             TiledCorners::BottomLeft => (
                 Point::from((
-                    output_geometry.loc.x,
-                    output_geometry.loc.y + (output_geometry.size.h / 2),
+                    output_geometry.loc.x + inner,
+                    output_geometry.loc.y + (output_geometry.size.h / 2) + inner / 2,
                 )),
-                Size::from((output_geometry.size.w / 2, output_geometry.size.h / 2)),
+                Size::from((
+                    output_geometry.size.w / 2 - inner * 3 / 2,
+                    output_geometry.size.h / 2 - inner * 3 / 2,
+                )),
             ),
             TiledCorners::BottomRight => (
                 Point::from((
-                    output_geometry.loc.x + (output_geometry.size.w / 2),
-                    output_geometry.loc.y + (output_geometry.size.h / 2),
+                    output_geometry.loc.x + (output_geometry.size.w / 2) + inner / 2,
+                    output_geometry.loc.y + (output_geometry.size.h / 2) + inner / 2,
                 )),
-                Size::from((output_geometry.size.w / 2, output_geometry.size.h / 2)),
+                Size::from((
+                    output_geometry.size.w / 2 - inner * 3 / 2,
+                    output_geometry.size.h / 2 - inner * 3 / 2,
+                )),
             ),
             TiledCorners::Left => (
-                output_geometry.loc,
-                Size::from((output_geometry.size.w / 2, output_geometry.size.h)),
+                Point::from((output_geometry.loc.x + inner, output_geometry.loc.y + inner)),
+                Size::from((
+                    output_geometry.size.w / 2 - inner * 3 / 2,
+                    output_geometry.size.h - inner * 2,
+                )),
             ),
             TiledCorners::Top => (
-                output_geometry.loc,
-                Size::from((output_geometry.size.w, output_geometry.size.h / 2)),
+                Point::from((output_geometry.loc.x + inner, output_geometry.loc.y + inner)),
+                Size::from((
+                    output_geometry.size.w - inner * 2,
+                    output_geometry.size.h / 2 - inner * 3 / 2,
+                )),
             ),
             TiledCorners::TopLeft => (
-                output_geometry.loc,
-                Size::from((output_geometry.size.w / 2, output_geometry.size.h / 2)),
+                Point::from((output_geometry.loc.x + inner, output_geometry.loc.y + inner)),
+                Size::from((
+                    output_geometry.size.w / 2 - inner * 3 / 2,
+                    output_geometry.size.h / 2 - inner * 3 / 2,
+                )),
             ),
             TiledCorners::TopRight => (
                 Point::from((
-                    output_geometry.loc.x + (output_geometry.size.w / 2),
-                    output_geometry.loc.y,
+                    output_geometry.loc.x + (output_geometry.size.w / 2) + inner / 2,
+                    output_geometry.loc.y + inner,
                 )),
-                Size::from((output_geometry.size.w / 2, output_geometry.size.h / 2)),
+                Size::from((
+                    output_geometry.size.w / 2 - inner * 3 / 2,
+                    output_geometry.size.h / 2 - inner * 3 / 2,
+                )),
             ),
             TiledCorners::Right => (
                 Point::from((
-                    output_geometry.loc.x + (output_geometry.size.w / 2),
-                    output_geometry.loc.y,
+                    output_geometry.loc.x + (output_geometry.size.w / 2) + inner / 2,
+                    output_geometry.loc.y + inner,
                 )),
-                Size::from((output_geometry.size.w / 2, output_geometry.size.h)),
+                Size::from((
+                    output_geometry.size.w / 2 - inner * 3 / 2,
+                    output_geometry.size.h - inner * 2,
+                )),
             ),
         };
 
@@ -266,7 +293,7 @@ impl FloatingLayout {
         {
             let tiled_state = mapped.floating_tiled.lock().unwrap().clone();
             if let Some(tiled_state) = tiled_state {
-                let geometry = tiled_state.relative_geometry(output_geometry);
+                let geometry = tiled_state.relative_geometry(output_geometry, self.gaps());
                 self.map_internal(
                     mapped,
                     Some(geometry.loc),
@@ -311,8 +338,19 @@ impl FloatingLayout {
     ) {
         let output = self.space.outputs().next().unwrap().clone();
         let layers = layer_map_for_output(&output);
-        let geometry = layers.non_exclusive_zone().as_local();
-
+        let non_exclusive_geometry = layers.non_exclusive_zone();
+        let (_, inner) = self.gaps();
+        let geometry = Rectangle::from_loc_and_size(
+            Point::from((
+                non_exclusive_geometry.loc.x + inner,
+                non_exclusive_geometry.loc.y + inner,
+            )),
+            Size::from((
+                non_exclusive_geometry.size.w - inner * 2,
+                non_exclusive_geometry.size.h - inner * 2,
+            )),
+        )
+        .as_local();
         mapped.set_bounds(geometry.size.as_logical());
         mapped.set_tiled(true);
         mapped.set_maximized(true);
@@ -966,7 +1004,12 @@ impl FloatingLayout {
                     .map(RectExt::as_local)
                     .unwrap();
                 let start_rectangle = if let Some(anim) = self.animations.remove(element) {
-                    anim.geometry(output_geometry, current_geometry, tiled_state.as_ref())
+                    anim.geometry(
+                        output_geometry,
+                        current_geometry,
+                        tiled_state.as_ref(),
+                        self.gaps(),
+                    )
                 } else {
                     current_geometry
                 };
@@ -1045,7 +1088,7 @@ impl FloatingLayout {
                     (Direction::Left, _) => TiledCorners::Left,
                 };
 
-                let new_geo = new_state.relative_geometry(output_geometry);
+                let new_geo = new_state.relative_geometry(output_geometry, self.gaps());
                 let (new_pos, new_size) = (new_geo.loc, new_geo.size);
                 element.set_tiled(true); // TODO: More fine grained?
                 element.set_maximized(false);
@@ -1234,6 +1277,7 @@ impl FloatingLayout {
                         .map(RectExt::as_local)
                         .unwrap_or(geometry),
                     elem.floating_tiled.lock().unwrap().as_ref(),
+                    self.gaps(),
                 );
 
                 let buffer_size = elem.geometry().size;
@@ -1290,28 +1334,30 @@ impl FloatingLayout {
                     .collect();
             }
 
-            if focused == Some(elem) && !elem.is_maximized(false) {
-                if let Some((mode, resize)) = resize_indicator.as_mut() {
-                    let mut resize_geometry = geometry.clone();
-                    resize_geometry.loc -= (18, 18).into();
-                    resize_geometry.size += (36, 36).into();
+            if focused == Some(elem) {
+                if !elem.is_maximized(false) {
+                    if let Some((mode, resize)) = resize_indicator.as_mut() {
+                        let mut resize_geometry = geometry.clone();
+                        resize_geometry.loc -= (18, 18).into();
+                        resize_geometry.size += (36, 36).into();
 
-                    resize.resize(resize_geometry.size.as_logical());
-                    resize.output_enter(output, Rectangle::default() /* unused */);
-                    window_elements.extend(
-                        resize
-                            .render_elements::<CosmicWindowRenderElement<R>>(
-                                renderer,
-                                resize_geometry
-                                    .loc
-                                    .as_logical()
-                                    .to_physical_precise_round(output_scale),
-                                output_scale.into(),
-                                alpha * mode.alpha().unwrap_or(1.0),
-                            )
-                            .into_iter()
-                            .map(CosmicMappedRenderElement::Window),
-                    );
+                        resize.resize(resize_geometry.size.as_logical());
+                        resize.output_enter(output, Rectangle::default() /* unused */);
+                        window_elements.extend(
+                            resize
+                                .render_elements::<CosmicWindowRenderElement<R>>(
+                                    renderer,
+                                    resize_geometry
+                                        .loc
+                                        .as_logical()
+                                        .to_physical_precise_round(output_scale),
+                                    output_scale.into(),
+                                    alpha * mode.alpha().unwrap_or(1.0),
+                                )
+                                .into_iter()
+                                .map(CosmicMappedRenderElement::Window),
+                        );
+                    }
                 }
 
                 let active_window_hint = crate::theme::active_window_hint(theme);
@@ -1339,5 +1385,10 @@ impl FloatingLayout {
         }
 
         (window_elements, popup_elements)
+    }
+
+    fn gaps(&self) -> (i32, i32) {
+        let g = self.theme.cosmic().gaps;
+        (g.0 as i32, g.1 as i32)
     }
 }
